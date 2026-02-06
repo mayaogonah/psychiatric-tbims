@@ -1,0 +1,1 @@
+To run these scripts from start to finish, there are several required files that cannot be posted due to data security guidelines. For one, these scripts draw from the TBIMS Public Use Data Set, which can be downloaded from the TBIMS website (https://www.tbindsc.org/public/requestdata.aspx).
