@@ -19,8 +19,6 @@ author: Maya Ogonah (Columbia University)
 email: mgo2120@columbia.edu
 date: today
 ---
-
-
 ## Libraries and data
 
 ### Packages
@@ -68,7 +66,8 @@ pacman::p_load(
   haven, # missing data MCAR
   finalfit, # missing data MCAR
   mice, # multiple imputation
-  miceadds # multiple imputation
+  miceadds, # multiple imputation
+  RColorBrewer # palettes proposed by RColorBrewer for heatmap
 )
 
 # download custon functions from the "Introduction to Regression Methods for Public Health Using R" by Ramzi W Nahhas
@@ -1007,7 +1006,7 @@ data_risk <- data_risk %>%
 
 imp.mids <- mice(data_risk,
                    seed  = 3, # ensure reproducibility
-                   m     = 20, # when you are ready to fit your final imputation model, use 20 imputations
+                   m     = 2, # when you are ready to fit your final imputation model, use 20 imputations
                    print = F)
 ```
 
@@ -1229,6 +1228,18 @@ ggplot(data_splines_m,
        y = "Linear Prediction (Log-Odds)", 
        color = "") + 
   theme(legend.position = c(0.8, 0.2))
+
+jpeg("output/age_rcs.jpg", width = 800, height = 600)
+ggplot(data_splines_m, 
+                       aes(x=age_at_entry, y=value, colour=variable)) + 
+  geom_line() + 
+   scale_colour_manual(labels = c("3 knots", "4 knots", "5 knots"), values = c("darkseagreen", 'cadetblue3', "deeppink3")) + 
+  theme_brand() +
+  labs(x = "Age", 
+       y = "Linear Prediction (Log-Odds)", 
+       color = "") + 
+  theme(legend.position = c(0.8, 0.2))
+dev.off()
 ```
 
 ```{r}
@@ -1461,6 +1472,72 @@ tbl_regression(imp.drug.full,
   )
 ```
 
+## All psychiatric predictors
+
+### Correlation matrix
+
+First, create a heat map of all psychiatric risk factors. Correlation of dark green indicates a 1.0 correlation. 
+```{r}
+coul <- colorRampPalette(brewer.pal(8, "PiYG"))(25)
+
+completed <- complete(imp.risk, action = "all")
+
+completed_mat <- lapply(completed, function(df) {
+  as.matrix(sapply(df, as.numeric))
+})
+
+pooled_data <- Reduce("+", completed_mat) / length(completed_mat)
+
+pooled_psych <- pooled_data[, c("Psychiatric_Hospitalisation", "Mental_Treatment", "Suicide_Lifetime", "Drugs", "Alcohol_Use")]
+
+cor <- cor(pooled_psych, use = "pairwise.complete.obs", method = "pearson")
+
+heatmap(cor, col = coul, symm = TRUE)
+
+jpeg("output/heatmap.jpg", width = 800, height = 600)
+heatmap(cor, col = coul, symm = TRUE)
+dev.off()
+```
+
+The Phi coefficient is a measure of association between binary variables. A pearson correlation coefficient estimates for binary variables will return the phi coefficient.
+```{r}
+res <- round(cor, 2)
+datatable(res, 
+  options = list(
+    scrollX = TRUE,             # enables horizontal scroll
+    autoWidth = TRUE,           # adjusts column widths
+    pageLength = 10             # optional: rows per page
+  ),
+  class = 'display nowrap stripe'
+)
+```
+
+
+### Regression with all psychiatric predictors
+
+Include all psychiatric predictors in the model, adjusting for sociodemographics covariates
+
+```{r}
+imp.psych.all <- with(imp.risk, 
+                      glm(Aetiology ~ Psychiatric_Hospitalisation + Mental_Treatment +
+                            Suicide_Lifetime + Alcohol_Use + Drugs + 
+                            rcs(Age, 3) + Sex + 
+                            Race + Urbanicity + Education + Special_Education + Employment, 
+                          family = binomial))
+```
+
+```{r}
+tbl_regression(imp.psych.all, 
+               exponentiate = TRUE) %>%
+  bold_p() %>%
+  bold_labels() %>%
+  modify_header(label = "**Variable**") %>%
+  as_gt() %>%  # Convert to gt for further customization
+  gt::tab_header(
+    title = "Logistic Regression With All Psychiatric Predictors (Fully Adjusted Model)"
+  )
+```
+
 ## Assessing for multicollinearity 
 
 An important step in the logistic regression analysis is to assess the assumption of no strong multicollinearity. To do so, we used the `car::viff()` function to calculate the variance inflation factor (VIF), which was pooled across all imputed datasets. 
@@ -1637,6 +1714,26 @@ vif_averaged10 <- Reduce("+", vif_results_drugs_full) / length(vif_results_drugs
 print("Average VIF across imputations:")
 print(vif_averaged10)
 ```
+
+All predictors
+```{r}
+vif_results_all <- lapply(1:imp.risk$m, function(i) {
+  complete_data <- complete(imp.risk, i)
+   imp.psych.all <- glm(Aetiology ~ Psychiatric_Hospitalisation + Mental_Treatment + Suicide_Lifetime + Alcohol_Use + Drugs
+                          + rcs(Age, 3) + Sex
+                          + Race + Urbanicity + Education + Special_Education + Employment,
+               data = complete_data, 
+               family = binomial)
+  car::vif(imp.psych.all)
+})
+
+# average VIF across imputations
+vif_averaged11 <- Reduce("+", vif_results_all) / length(vif_results_all)
+print("Average VIF across imputations:")
+print(vif_averaged11)
+```
+
+When including all psychiatric predictors the aGSIF increase, however still the values are still above 1.6 and therefore, shouldn't raise any cause for concern. 
 
 # Sensitivity analysis
 
