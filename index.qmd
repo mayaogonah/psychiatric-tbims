@@ -1006,7 +1006,7 @@ data_risk <- data_risk %>%
 
 imp.mids <- mice(data_risk,
                    seed  = 3, # ensure reproducibility
-                   m     = 2, # when you are ready to fit your final imputation model, use 20 imputations
+                   m     = 20, # when you are ready to fit your final imputation model, use 20 imputations
                    print = F)
 ```
 
@@ -1737,6 +1737,8 @@ When including all psychiatric predictors the aGSIF increase, however still the 
 
 # Sensitivity analysis
 
+## Complete case analysis
+
 Are similar results obtained when the analysis is restricted to the complete cases only?
 
 ```{r}
@@ -1749,7 +1751,7 @@ data_complete %>%
   nrow()
 ```
 
-## Descriptive statistics 
+### Descriptive statistics 
 
 ```{r}
 data_complete %>%
@@ -1817,7 +1819,7 @@ test.args = all_categorical() ~ list(simulate.p.value = TRUE)) %>%
 ```
 
 
-## Minimally adjusted models
+### Minimally adjusted models
 ```{r}
 cc.psych_rcs <- glm(Aetiology ~ Psychiatric_Hospitalisation + rcs(Age, 3) + Sex, family = binomial, data = data_complete)
 ```
@@ -1901,7 +1903,7 @@ tbl_regression(cc.drug_rcs,
 ```
 
 
-## Fully adjusted models 
+### Fully adjusted models 
 
 Adjust for all sociodemographic risk factors (age, sex, race, urbanicity, educational attainment, learning difficulties/special education, and employment status) in the logistic regression models.
 
@@ -1988,6 +1990,33 @@ tbl_regression(cc.drug.full,
   as_gt() %>%  # Convert to gt for further customization
   gt::tab_header(
     title = "Logistic Regression: TBI Aetiology by Illicit Drug Use (Fully Adjusted Model)"
+  )
+```
+
+## Suicide atttempt 
+
+```{r}
+mi.n.p(imp.risk, "Suicide_Recent")
+mi.n.p.by(imp.risk, "Suicide_Recent", BY = "Aetiology")
+mi.n.p.by(imp.risk, "Cause", BY = "Suicide_Recent")
+```
+
+There are 107.9 individuals who report a suicide attempt within the 12 months prior to the TBI. Without interviewing these individuals it would be hard to ascertain whether the suicide attempt caused their brain injury. Very little is known about individuals who sustain a brain secondary to a suicide attempt [(Higgins et al., 2020)](https://pubmed.ncbi.nlm.nih.gov/31674208/]). 
+```{r}
+imp.suicide.recent <- with(imp.risk, 
+                      glm(Aetiology ~ Suicide_Recent + rcs(Age, 3) + Sex
+                           + Race + Urbanicity + Education + Special_Education + Employment, family = binomial))
+```
+
+```{r}
+tbl_regression(imp.suicide.recent, 
+               exponentiate = TRUE) %>%
+  bold_p() %>%
+  bold_labels() %>%
+  modify_header(label = "**Variable**") %>%
+  as_gt() %>%  # Convert to gt for further customization
+  gt::tab_header(
+    title = "Logistic Regression: TBI Aetiology by Suicide Attempts (Fully Adjusted Model)"
   )
 ```
 

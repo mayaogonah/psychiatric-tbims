@@ -172,9 +172,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#sensitivity-analysis" id="toc-sensitivity-analysis" class="nav-link" data-scroll-target="#sensitivity-analysis">Sensitivity analysis</a>
   <ul class="collapse">
+  <li><a href="#complete-case-analysis-1" id="toc-complete-case-analysis-1" class="nav-link" data-scroll-target="#complete-case-analysis-1">Complete case analysis</a>
+  <ul class="collapse">
   <li><a href="#descriptive-statistics-1" id="toc-descriptive-statistics-1" class="nav-link" data-scroll-target="#descriptive-statistics-1">Descriptive statistics</a></li>
   <li><a href="#minimally-adjusted-models-2" id="toc-minimally-adjusted-models-2" class="nav-link" data-scroll-target="#minimally-adjusted-models-2">Minimally adjusted models</a></li>
   <li><a href="#fully-adjusted-models-2" id="toc-fully-adjusted-models-2" class="nav-link" data-scroll-target="#fully-adjusted-models-2">Fully adjusted models</a></li>
+  </ul></li>
+  <li><a href="#suicide-atttempt" id="toc-suicide-atttempt" class="nav-link" data-scroll-target="#suicide-atttempt">Suicide atttempt</a></li>
   </ul></li>
   <li><a href="#clean-up" id="toc-clean-up" class="nav-link" data-scroll-target="#clean-up">Clean up</a></li>
   </ul>
@@ -1348,7 +1352,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>imp.mids <span class="ot">&lt;-</span> <span class="fu">mice</span>(data_risk,</span>
 <span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>                   <span class="at">seed  =</span> <span class="dv">3</span>, <span class="co"># ensure reproducibility</span></span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>                   <span class="at">m     =</span> <span class="dv">2</span>, <span class="co"># when you are ready to fit your final imputation model, use 20 imputations</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>                   <span class="at">m     =</span> <span class="dv">20</span>, <span class="co"># when you are ready to fit your final imputation model, use 20 imputations</span></span>
 <span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>                   <span class="at">print =</span> F)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
@@ -2178,6 +2182,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="sensitivity-analysis" class="level1">
 <h1>Sensitivity analysis</h1>
+<section id="complete-case-analysis-1" class="level2">
+<h2 class="anchored" data-anchor-id="complete-case-analysis-1">Complete case analysis</h2>
 <p>Are similar results obtained when the analysis is restricted to the complete cases only?</p>
 <div class="cell">
 <details open="" class="code-fold">
@@ -2191,8 +2197,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb76-7"><a href="#cb76-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">nrow</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
-<section id="descriptive-statistics-1" class="level2">
-<h2 class="anchored" data-anchor-id="descriptive-statistics-1">Descriptive statistics</h2>
+<section id="descriptive-statistics-1" class="level3">
+<h3 class="anchored" data-anchor-id="descriptive-statistics-1">Descriptive statistics</h3>
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
@@ -2271,8 +2277,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </details>
 </div>
 </section>
-<section id="minimally-adjusted-models-2" class="level2">
-<h2 class="anchored" data-anchor-id="minimally-adjusted-models-2">Minimally adjusted models</h2>
+<section id="minimally-adjusted-models-2" class="level3">
+<h3 class="anchored" data-anchor-id="minimally-adjusted-models-2">Minimally adjusted models</h3>
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
@@ -2374,8 +2380,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </details>
 </div>
 </section>
-<section id="fully-adjusted-models-2" class="level2">
-<h2 class="anchored" data-anchor-id="fully-adjusted-models-2">Fully adjusted models</h2>
+<section id="fully-adjusted-models-2" class="level3">
+<h3 class="anchored" data-anchor-id="fully-adjusted-models-2">Fully adjusted models</h3>
 <p>Adjust for all sociodemographic risk factors (age, sex, race, urbanicity, educational attainment, learning difficulties/special education, and employment status) in the logistic regression models.</p>
 <div class="cell">
 <details open="" class="code-fold">
@@ -2484,24 +2490,59 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </section>
 </section>
+<section id="suicide-atttempt" class="level2">
+<h2 class="anchored" data-anchor-id="suicide-atttempt">Suicide atttempt</h2>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb103"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb103-1"><a href="#cb103-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mi.n.p</span>(imp.risk, <span class="st">"Suicide_Recent"</span>)</span>
+<span id="cb103-2"><a href="#cb103-2" aria-hidden="true" tabindex="-1"></a><span class="fu">mi.n.p.by</span>(imp.risk, <span class="st">"Suicide_Recent"</span>, <span class="at">BY =</span> <span class="st">"Aetiology"</span>)</span>
+<span id="cb103-3"><a href="#cb103-3" aria-hidden="true" tabindex="-1"></a><span class="fu">mi.n.p.by</span>(imp.risk, <span class="st">"Cause"</span>, <span class="at">BY =</span> <span class="st">"Suicide_Recent"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<p>There are 107.9 individuals who report a suicide attempt within the 12 months prior to the TBI. Without interviewing these individuals it would be hard to ascertain whether the suicide attempt caused their brain injury. Very little is known about individuals who sustain a brain secondary to a suicide attempt <a href="https://pubmed.ncbi.nlm.nih.gov/31674208/%5D">(Higgins et al., 2020)</a>.</p>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb104"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb104-1"><a href="#cb104-1" aria-hidden="true" tabindex="-1"></a>imp.suicide.recent <span class="ot">&lt;-</span> <span class="fu">with</span>(imp.risk, </span>
+<span id="cb104-2"><a href="#cb104-2" aria-hidden="true" tabindex="-1"></a>                      <span class="fu">glm</span>(Aetiology <span class="sc">~</span> Suicide_Recent <span class="sc">+</span> <span class="fu">rcs</span>(Age, <span class="dv">3</span>) <span class="sc">+</span> Sex</span>
+<span id="cb104-3"><a href="#cb104-3" aria-hidden="true" tabindex="-1"></a>                           <span class="sc">+</span> Race <span class="sc">+</span> Urbanicity <span class="sc">+</span> Education <span class="sc">+</span> Special_Education <span class="sc">+</span> Employment, <span class="at">family =</span> binomial))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+<div class="cell">
+<details open="" class="code-fold">
+<summary>Code</summary>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb105"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb105-1"><a href="#cb105-1" aria-hidden="true" tabindex="-1"></a><span class="fu">tbl_regression</span>(imp.suicide.recent, </span>
+<span id="cb105-2"><a href="#cb105-2" aria-hidden="true" tabindex="-1"></a>               <span class="at">exponentiate =</span> <span class="cn">TRUE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb105-3"><a href="#cb105-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bold_p</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb105-4"><a href="#cb105-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bold_labels</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb105-5"><a href="#cb105-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">modify_header</span>(<span class="at">label =</span> <span class="st">"**Variable**"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb105-6"><a href="#cb105-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_gt</span>() <span class="sc">%&gt;%</span>  <span class="co"># Convert to gt for further customization</span></span>
+<span id="cb105-7"><a href="#cb105-7" aria-hidden="true" tabindex="-1"></a>  gt<span class="sc">::</span><span class="fu">tab_header</span>(</span>
+<span id="cb105-8"><a href="#cb105-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Logistic Regression: TBI Aetiology by Suicide Attempts (Fully Adjusted Model)"</span></span>
+<span id="cb105-9"><a href="#cb105-9" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</details>
+</div>
+</section>
+</section>
 <section id="clean-up" class="level1">
 <h1>Clean up</h1>
 <p>Save data to the .RProject.</p>
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb103"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb103-1"><a href="#cb103-1" aria-hidden="true" tabindex="-1"></a><span class="fu">save</span>(<span class="at">object =</span> longitudinal_complete, <span class="at">file =</span> <span class="st">"data/longitudinal_complete.RData"</span>) <span class="co"># save the linked dataset</span></span>
-<span id="cb103-2"><a href="#cb103-2" aria-hidden="true" tabindex="-1"></a><span class="fu">save</span>(<span class="at">object =</span> longitudinal_clean, <span class="at">file =</span> <span class="st">"data/longitudinal_clean.RData"</span>) <span class="co"># cleaned data were I have recoded missing as NA. </span></span>
-<span id="cb103-3"><a href="#cb103-3" aria-hidden="true" tabindex="-1"></a><span class="fu">save</span>(<span class="at">object =</span> data_risk, <span class="at">file =</span> <span class="st">"data/data_risk.RData"</span>) <span class="co"># data use for the psychiatric risk factor study</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb106"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb106-1"><a href="#cb106-1" aria-hidden="true" tabindex="-1"></a><span class="fu">save</span>(<span class="at">object =</span> longitudinal_complete, <span class="at">file =</span> <span class="st">"data/longitudinal_complete.RData"</span>) <span class="co"># save the linked dataset</span></span>
+<span id="cb106-2"><a href="#cb106-2" aria-hidden="true" tabindex="-1"></a><span class="fu">save</span>(<span class="at">object =</span> longitudinal_clean, <span class="at">file =</span> <span class="st">"data/longitudinal_clean.RData"</span>) <span class="co"># cleaned data were I have recoded missing as NA. </span></span>
+<span id="cb106-3"><a href="#cb106-3" aria-hidden="true" tabindex="-1"></a><span class="fu">save</span>(<span class="at">object =</span> data_risk, <span class="at">file =</span> <span class="st">"data/data_risk.RData"</span>) <span class="co"># data use for the psychiatric risk factor study</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <p>Clean environment.</p>
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb104"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb104-1"><a href="#cb104-1" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>() <span class="co"># garabage, free unused R memory</span></span>
-<span id="cb104-2"><a href="#cb104-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list =</span> <span class="fu">ls</span>()) <span class="co"># remove all from R environment</span></span>
-<span id="cb104-3"><a href="#cb104-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\014</span><span class="st">"</span>) <span class="co"># clear console</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb107"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb107-1"><a href="#cb107-1" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>() <span class="co"># garabage, free unused R memory</span></span>
+<span id="cb107-2"><a href="#cb107-2" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list =</span> <span class="fu">ls</span>()) <span class="co"># remove all from R environment</span></span>
+<span id="cb107-3"><a href="#cb107-3" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">"</span><span class="sc">\014</span><span class="st">"</span>) <span class="co"># clear console</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
