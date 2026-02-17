@@ -187,12 +187,6 @@ longitudinal_complete %>%
 
 ```
 
-
-```{r}
-table(longitudinal_complete$EMPLOYMENTF)
-```
-
-
 ## Data cleaning
 
 Clean up the data. Ensure categorical variables are coded as factors as this makes it much easier to use in statistical models and graphs. Age, year, and time-to-event variables are coded as numeric. "Unknown" or missing data is coded as NA. Invalid values are also coded as NA.
@@ -2002,14 +1996,33 @@ mi.n.p.by(imp.risk, "Cause", BY = "Suicide_Recent")
 ```
 
 There are 107.9 individuals who report a suicide attempt within the 12 months prior to the TBI. Without interviewing these individuals it would be hard to ascertain whether the suicide attempt caused their brain injury. Very little is known about individuals who sustain a brain secondary to a suicide attempt [(Higgins et al., 2020)](https://pubmed.ncbi.nlm.nih.gov/31674208/]). 
+
 ```{r}
-imp.suicide.recent <- with(imp.risk, 
+imp.suicide.recent1 <- with(imp.risk, 
+                      glm(Aetiology ~ Suicide_Recent + rcs(Age, 3) + Sex, family = binomial))
+```
+
+```{r}
+tbl_regression(imp.suicide.recent1, 
+               exponentiate = TRUE) %>%
+  bold_p() %>%
+  bold_labels() %>%
+  modify_header(label = "**Variable**") %>%
+  as_gt() %>%  # Convert to gt for further customization
+  gt::tab_header(
+    title = "Logistic Regression: TBI Aetiology by Suicide Attempts (Minimally Adjusted Model)"
+  )
+```
+
+
+```{r}
+imp.suicide.recent2 <- with(imp.risk, 
                       glm(Aetiology ~ Suicide_Recent + rcs(Age, 3) + Sex
                            + Race + Urbanicity + Education + Special_Education + Employment, family = binomial))
 ```
 
 ```{r}
-tbl_regression(imp.suicide.recent, 
+tbl_regression(imp.suicide.recent2, 
                exponentiate = TRUE) %>%
   bold_p() %>%
   bold_labels() %>%
