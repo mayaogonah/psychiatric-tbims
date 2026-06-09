@@ -25,13 +25,13 @@ date: today
 
 First load all necessary packages.
 
-```{r}
+```{r install-git}
 #install.packages("remotes")
 #remotes::install_git("https://codeberg.org/hrbrmstr/hrbrthemes.git")
 
 ```
 
-```{r, warning=FALSE, message=FALSE}
+```{r load-packages, warning=FALSE, message=FALSE}
 if (!require("pacman")) install.packages("pacman")
 
 library(pacman)
@@ -81,7 +81,7 @@ source("Functions_rmph.R")
 
 Create a datavisualisation theme.
 
-```{r}
+```{r dataviz}
 scale_color_brand <- function() {
   custom_palette <- MetBrewer::met.brewer(name = "Klimt", n=20, type="continuous") # <2>
   scale_color_manual(values = custom_palette)
@@ -120,7 +120,7 @@ theme_brand <- function() {
 ### Import data
 Then, import the the publicly available de-identified data from [TBIMS](https://www.tbindsc.org/default.aspx), and save the .csv file to a R studio project (no need to setwd).
 
-```{r, warning=FALSE, message=FALSE}
+```{r load-data, warning=FALSE, message=FALSE}
 data <- read_csv("data/input/TBIMSForm1_Public_20250812.csv")
 data_long <- read_csv("data/input/TBIMSForm2_Public_20250812.csv")
 ```
@@ -132,7 +132,7 @@ data_long <- read_csv("data/input/TBIMSForm2_Public_20250812.csv")
 
 Now lets link Form 1 and Form 2 using union/vertical joins. Data is in the long format.
 
-```{r}
+```{r link-data}
 # create baseline rows from baseline data
 baseline_long <- data %>%
   transmute(
@@ -173,18 +173,17 @@ longitudinal_complete <- longitudinal_data %>%
     data %>%
       select(Mod1Id, SexF, RaceIndF, RaceBlkF, RacePIF, RaceAsnF, RaceWhtF,
              EthnicityF, CountryBirthF, INJYEAR, DEATHYEAR, 
-             Cause, GCS, SCI, CC_Hypertension, SpEd, SuicidePrior, PsyHosp, MntlEver),
+             Cause, GCS, SCI, CC_Hypertension, SpEd, SuicidePrior, PsyHosp, MntlEver, AcutePay1, RehabPay1),
     by = "Mod1Id"
   )
 ```
 
 Check the unique number of individuals in the linked data.
 
-```{r}
+```{r n-pcpts}
 longitudinal_complete %>%
   distinct(Mod1Id) %>%
   nrow()
-
 ```
 
 ## Data cleaning
@@ -193,7 +192,7 @@ Clean up the data. Ensure categorical variables are coded as factors as this mak
 
 ### Demographics
 
-```{r}
+```{r demo-clean}
 # age (AGENoPHIF)
 longitudinal_complete <- longitudinal_complete %>%
   mutate(AGENoPHIF_C = ifelse(AGENoPHIF < 16, NA, AGENoPHIF)) %>% # those with an incorrect age coded as NA
@@ -235,7 +234,7 @@ longitudinal_complete <- longitudinal_complete %>%
     RaceCat = case_when(
       RaceCount == 1 & RaceWhtF_C == 1 ~ 1, # white
       RaceCount == 1 & RaceBlkF_C == 1 ~ 2, # black
-      RaceCount == 1 & RacePIF_C == 1 ~ 3, # PIF
+      RaceCount == 1 & RacePIF_C == 1 ~ 3,  # PIF
       RaceCount == 1 & RaceAsnF_C == 1 ~ 4, # Asian 
       RaceCount == 1 & RaceIndF_C == 1 ~ 5, # AIAN
       RaceCount > 1 ~ 6,  #mixed race category
@@ -247,12 +246,12 @@ longitudinal_complete <- longitudinal_complete %>%
     )
   ) %>%
   mutate(Race1 = case_when(
-    RaceCat == 1 ~ 1, # white
-    RaceCat == 2 ~ 2, # black
-    RaceCat == 4 ~ 3, # asian
-    RaceCat == 3 ~ 4, # NHPI
-    RaceCat == 5 ~ 5, # AIAN
-    RaceCat == 6 ~ 6 # mixed race
+    RaceCat == 1 ~ 1,  # white
+    RaceCat == 2 ~ 2,  # black
+    RaceCat == 4 ~ 3,  # asian
+    RaceCat == 3 ~ 4,  # NHPI
+    RaceCat == 5 ~ 5,  # AIAN
+    RaceCat == 6 ~ 6   # mixed race
   )) %>%
   mutate(RaceCat = as.factor(RaceCat)) %>%
   mutate(Race1 = as.factor(Race1))
@@ -321,14 +320,14 @@ longitudinal_complete <- longitudinal_complete %>%
   ) %>%
 
   mutate(race_ethnicity_C = case_when(
-    race_ethnicity_C == "White" ~ 1,
-    race_ethnicity_C == "Black or AA" ~ 2,
-    race_ethnicity_C == "Asian / NHPI" ~ 3,
+    race_ethnicity_C == "White"              ~ 1,
+    race_ethnicity_C == "Black or AA"        ~ 2,
+    race_ethnicity_C == "Asian / NHPI"       ~ 3,
     race_ethnicity_C == "Hispanic or Latino" ~ 4,
-    race_ethnicity_C == "AIAN" ~ 5,
+    race_ethnicity_C == "AIAN"               ~ 5,
     race_ethnicity_C == "Non-Hispanic Other" ~ 6,
     race_ethnicity_C == "More than one race" ~ 7,
-    race_ethnicity_C == "Unknown" ~ NA
+    race_ethnicity_C == "Unknown"            ~ NA
   ),
   race_ethnicity_C = as.factor(race_ethnicity_C))
 
@@ -346,30 +345,30 @@ longitudinal_complete <- longitudinal_complete %>%
 ## categorise those with less than 10 years of school as those "still in school"
 longitudinal_complete <- longitudinal_complete %>%
   mutate(EduYears10 = case_when(
-    EduYearsF <= 10 ~ 1,
-    EduYearsF == 11 ~ 2,
-    EduYearsF == 12 ~ 3,
-    EduYearsF == 13 ~ 4,
-    EduYearsF == 14 ~ 5,
-    EduYearsF == 15 ~ 6,
-    EduYearsF == 16 ~ 7,
-    EduYearsF == 17 ~ 8,
-    EduYearsF == 18 ~ 9,
-    EduYearsF == 19 ~ 10,
-    EduYearsF == 20 ~ 11,
-    EduYearsF == 21 ~ 12,
+    EduYearsF <= 10  ~ 1,
+    EduYearsF == 11  ~ 2,
+    EduYearsF == 12  ~ 3,
+    EduYearsF == 13  ~ 4,
+    EduYearsF == 14  ~ 5,
+    EduYearsF == 15  ~ 6,
+    EduYearsF == 16  ~ 7,
+    EduYearsF == 17  ~ 8,
+    EduYearsF == 18  ~ 9,
+    EduYearsF == 19  ~ 10,
+    EduYearsF == 20  ~ 11,
+    EduYearsF == 21  ~ 12,
     EduYearsF == 666 ~ 666,
     EduYearsF == 999 ~ 999
   )) %>%
   mutate(EduYears10_C = if_else(EduYears10 %in% c(666, 999) | is.na(EduYears10), NA, EduYears10)) %>%
   mutate(EDUCATION_C = case_when(
-           EDUCATIONF == 1 | EDUCATIONF == 2 ~ 1, # no high school degree
-           EDUCATIONF == 2.5 | EDUCATIONF == 3 | EDUCATIONF == 3.5 ~ 2, # HS/GED
-           EDUCATIONF == 5 ~ 3, # some college
-           EDUCATIONF == 6 ~ 4, # associated degree
-           EDUCATIONF == 7 ~ 5, # bachelors
-           EDUCATIONF == 8 | EDUCATIONF == 9 ~ 6, # graduate degree
-           EDUCATIONF == 4 | EDUCATIONF == 21 ~ NA, # other (due to the small number of individuals with this category they were bundled with unknown)
+           EDUCATIONF == 2.5 | EDUCATIONF == 3 | EDUCATIONF == 3.5 ~ 1, # HS/GED
+           EDUCATIONF == 1 | EDUCATIONF == 2                       ~ 2, # no high school degree
+           EDUCATIONF == 5                                         ~ 3, # some college
+           EDUCATIONF == 6                                         ~ 4, # associated degree
+           EDUCATIONF == 7                                         ~ 5, # bachelors
+           EDUCATIONF == 8 | EDUCATIONF == 9                       ~ 6, # graduate degree
+           EDUCATIONF == 4 | EDUCATIONF == 21                      ~ NA, # other (due to the small number of individuals with this category they were bundled with unknown)
            EDUCATIONF == 999 ~ NA
            )) %>%
   mutate(EduYears10_C = as.factor(EduYears10_C)) %>%
@@ -400,11 +399,11 @@ longitudinal_complete <- longitudinal_complete %>%
 longitudinal_complete <- longitudinal_complete %>%
   mutate(EMPLOYMENTF_C = ifelse(EMPLOYMENTF == 999 | is.na(EMPLOYMENTF), NA, EMPLOYMENTF)) %>%
   mutate(EMPLOY1 = case_when(
+    EMPLOYMENTF_C == 5                       ~ 1, # competitively employed
     EMPLOYMENTF_C == 2 | EMPLOYMENTF_C == 3  ~ 2, # student (part or full time)
-    EMPLOYMENTF_C == 5 ~ 1, # competitively employed
-    EMPLOYMENTF_C == 9 ~ 3, # retired
-    EMPLOYMENTF_C == 4 | EMPLOYMENTF_C == 7 | EMPLOYMENTF_C == 11 | EMPLOYMENTF_C == 12 | EMPLOYMENTF_C == 8 ~ 4, # other
-    EMPLOYMENTF_C == 10 ~ 5 # unemployment
+    EMPLOYMENTF_C == 9                       ~ 3, # retired
+    EMPLOYMENTF_C == 4 | EMPLOYMENTF_C == 7 | EMPLOYMENTF_C == 11 | EMPLOYMENTF_C == 12 | EMPLOYMENTF_C == 8                           ~ 4, # other
+    EMPLOYMENTF_C == 10                      ~ 5 # unemployment
   )) %>%
   mutate(EMPLOYMENTF_C = as.factor(EMPLOYMENTF_C)) %>% 
   mutate(EMPLOYMENTF = as.factor(EMPLOYMENTF)) %>%
@@ -414,23 +413,56 @@ longitudinal_complete <- longitudinal_complete %>%
 
 ### Injury characteristics
 
-```{r}
+```{r injury-clean}
 # injury year
 longitudinal_complete <- longitudinal_complete %>%
   mutate(INJYEAR = as.numeric(INJYEAR))
+
+# payor source
+longitudinal_complete <- longitudinal_complete %>%
+  mutate(AcutePay1 = case_when(
+    AcutePay1 == 4   ~ 1,   # private insurance 
+    AcutePay1 == 1   ~ 2,   # medicare
+    AcutePay1 == 2   ~ 3,   # medicaid
+    AcutePay1 == 3   ~ 4,   # worker compensation
+    AcutePay1 == 7   ~ 5,   # self or private pay
+    AcutePay1 == 8   ~ 6,   # state or county
+    AcutePay1 == 10  ~ 7,   # auto insurance
+    AcutePay1 == 14  ~ 8,   # charity
+    AcutePay1 == 15  ~ 9,   # other
+    AcutePay1 == 55  ~ 10,  # payor source pending 
+    AcutePay1 == 999 ~ NA, TRUE ~ NA
+  )) %>%
+  mutate(AcutePay1 = as.factor(AcutePay1)) %>%
+  mutate(RehabPay1 = case_when(
+    AcutePay1 == 4   ~ 1,   # private insurance 
+    AcutePay1 == 1   ~ 2,   # medicare
+    AcutePay1 == 2   ~ 3,   # medicaid
+    AcutePay1 == 3   ~ 4,   # worker compensation
+    AcutePay1 == 7   ~ 5,   # self or private pay
+    RehabPay1 == 8   ~ 6,   # state or county
+    RehabPay1 == 10  ~ 7,   # auto insurance
+    RehabPay1 == 14  ~ 8,   # charity
+    RehabPay1 == 15  ~ 9,   # other
+    RehabPay1 == 55  ~ 10,  # payor source pending 
+    RehabPay1 == 999 ~ NA, TRUE ~ NA
+  )) %>%
+  mutate(RehabPay1 = as.factor(RehabPay1))
 
 # cause of TBI (CauseCat)
 ## combine the cause of injury categories into: vehicular, violence, sports, falls, other, and unknown
 longitudinal_complete <- longitudinal_complete %>%
   mutate(Cause = as.factor(Cause)) %>%
   mutate(CauseCat = case_when(
-    (Cause == 1 | Cause == 2 | Cause == 3 | Cause == 4 | Cause == 5) ~ 1, # vehicular
-    Cause == 10 ~ 2, #gunshot wound
-    Cause == 11 ~ 3, # assault with blunt instrument
-    Cause == 12 ~ 4, # other violence
-    (Cause == 13 | Cause == 14 | Cause == 15 | Cause == 16 | Cause == 17 | Cause == 18) ~ 5, # sports
-    (Cause == 19) ~ 6, # falls
-    (Cause == 20 | Cause == 21 | Cause == 22) ~ 7, # other
+    (Cause == 1 | Cause == 2 | Cause == 3 | 
+       Cause == 4 | Cause == 5)                 ~ 1, # vehicular
+    Cause == 10                                 ~ 2, #gunshot wound
+    Cause == 11                                 ~ 3, # assault with blunt instrument
+    Cause == 12                                 ~ 4, # other violence
+    (Cause == 13 | Cause == 14 | Cause == 15 | 
+       Cause == 16 | Cause == 17 | Cause == 18) ~ 5, # sports
+    (Cause == 19)                               ~ 6, # falls
+    (Cause == 20 | Cause == 21 | Cause == 22)   ~ 7, # other
     (Cause == 999) ~ NA, TRUE ~ NA
   )) %>%
   mutate(CauseCat = ifelse(CauseCat == 999 | is.na(CauseCat), NA, CauseCat)) %>%
@@ -447,12 +479,12 @@ longitudinal_complete <- longitudinal_complete %>%
 ## recode the GCS variable into a categorical variable based on the criteria: mild (scores ≥ 13), moderate (scores 9–12), severe (scores 3–8), sedation (GCS = 77), intubation (GCS = 88), and missing (scores = 999)
 longitudinal_complete <- longitudinal_complete %>%
   mutate(GCSCatSed = case_when(
-    GCS < 9 ~ 1, # severe
-    (GCS >= 9 & GCS < 13) ~ 2, # moderate
-    (GCS >= 13 & GCS < 77) ~ 3, # mild
-    GCS == 77 ~ 77, # sedated
-    GCS == 88 ~ 88, # intubated
-    GCS == 999 ~ 999,
+    GCS < 9                ~ 1,  # severe
+    (GCS >= 9 & GCS < 13)  ~ 2,  # moderate
+    (GCS >= 13 & GCS < 77) ~ 3,  # mild
+    GCS == 77              ~ 77, # sedated
+    GCS == 88              ~ 88, # intubated
+    GCS == 999             ~ 999,
     TRUE ~ GCS
   )) %>%
   mutate(GCSCatSed = ifelse(GCSCatSed == 999 | is.na(GCSCatSed), NA, GCSCatSed)) %>%
@@ -473,7 +505,7 @@ longitudinal_complete <- longitudinal_complete %>%
 
 ### History / repeated TBI
 
-```{r}
+```{r rTBI-clean}
 # TBI history
 longitudinal_complete <- longitudinal_complete %>%
   mutate(TBIInjuryF = as.factor(TBIInjuryF)) %>%
@@ -489,7 +521,7 @@ longitudinal_complete <- longitudinal_complete %>%
 
 ### Disability
 
-```{r}
+```{r disability-clean}
 # disability rating scale (DRSF)
 longitudinal_complete <- longitudinal_complete %>%
   mutate(DRSF_C = ifelse(CombinedDRSF %in% c(777, 999) | is.na(CombinedDRSF), NA, CombinedDRSF)) # a cleaned version where missingness is denoted by NA
@@ -508,7 +540,7 @@ longitudinal_complete <- longitudinal_complete %>%
 
 ### Cause of death
 
-```{r}
+```{r death-clean}
 # age at death
 longitudinal_complete <- longitudinal_complete %>%
   mutate(
@@ -559,7 +591,7 @@ longitudinal_complete <- longitudinal_complete %>%
 
 ### Psychiatric illness and indices
 
-```{r}
+```{r psych-clean}
 # pre-TBI history of psychiatric hospitalisation (PsyHosp)
 longitudinal_complete <- longitudinal_complete %>%
   mutate(PsyHosp = as.factor(PsyHosp)) %>%
@@ -580,9 +612,9 @@ longitudinal_complete <- longitudinal_complete %>%
     SuicidePrior = ifelse(SuicidePrior %in% c(66, 77, 99) | is.na(SuicidePrior), NA, SuicidePrior),
     SuicideAttempt = case_when(
       is.na(SuicidePrior) ~ NA, 
-      SuicidePrior == 88 ~ 1, # never attempted suicide
-      SuicidePrior == 0 ~ 2, # yes, but not in the last year
-      SuicidePrior == 1 ~ 3 # yes, in the last year
+      SuicidePrior == 88  ~ 1, # never attempted suicide
+      SuicidePrior == 0   ~ 2, # yes, but not in the last year
+      SuicidePrior == 1   ~ 3  # yes, in the last year
   )) %>%
   mutate(SuicideEver = as.factor(SuicideEver)) %>%
   mutate(SuicideAttempt = as.factor(SuicideAttempt))
@@ -638,13 +670,13 @@ longitudinal_complete <- longitudinal_complete %>%
 ```
 
 
-## Streamline
+## Feature Selection
 
 Streamline the dataset by selecting the "cleaned" version of each variable (ie, `Variable_C`).
 
-```{r}
+```{r streamline}
 longitudinal_clean <- longitudinal_complete %>%
-  select(Mod1Id, Mod2Id, FollowUpPeriod, AGENoPHIF_C, SexF_C, INJYEAR, AgeDeath_C, DEATHYEAR, DAYStoDEATHF_C, DeathCause1F, DeathCause2F, DeathECodeF, DeathAssault, DeathSuicide, DeathOverdose, EduYears10_C, EDUCATION_C, EarnF_C, HHIncomeF_C, Race1, RaceCat, EthnicityF_C, race_ethnicity, race_ethnicity_C, CountryBirthF_C, RURALF, EMPLOYMENTF_C, EMPLOY1, Cause, CauseCat, Aetiology, TBIInjuryF_C, TBIRepInjuryF_C, GCSCatSed, SCI_C, CC_Hypertension_C, DRSF_C, FIMTOTF_C, FIMCOGF_C, GOSTotalF_C, SpEd_C, PsyHosp_C, MntlEver_C, SuicideEver, SuicideAttempt, DRINKCatF_C, PROBLEMUseF, DrugsF_C, gate_PHQ, PHQ9TOTF_C, gate_GAD, GAD7TOTF_C)
+  select(Mod1Id, Mod2Id, FollowUpPeriod, AGENoPHIF_C, SexF_C, INJYEAR, AgeDeath_C, DEATHYEAR, DAYStoDEATHF_C, DeathCause1F, DeathCause2F, DeathECodeF, DeathAssault, DeathSuicide, DeathOverdose, EduYears10_C, EDUCATION_C, EarnF_C, HHIncomeF_C, Race1, RaceCat, EthnicityF_C, race_ethnicity, race_ethnicity_C, CountryBirthF_C, RURALF, EMPLOYMENTF_C, EMPLOY1, Cause, CauseCat, Aetiology, TBIInjuryF_C, TBIRepInjuryF_C, GCSCatSed, SCI_C, CC_Hypertension_C, DRSF_C, FIMTOTF_C, FIMCOGF_C, GOSTotalF_C, SpEd_C, PsyHosp_C, MntlEver_C, SuicideEver, SuicideAttempt, DRINKCatF_C, PROBLEMUseF, DrugsF_C, gate_PHQ, PHQ9TOTF_C, gate_GAD, GAD7TOTF_C, RehabPay1, AcutePay1)
 
 # for analyses looking at baseline characteristics restrict the sample to those with Form 1 data
 baseline_clean <- longitudinal_clean %>%
@@ -654,7 +686,7 @@ baseline_clean <- longitudinal_clean %>%
 ## Codebook
 
 Create a codebook for all variables using the package `labelled()`.
-```{r}
+```{r codebook}
 # Label your variables
 var_label(longitudinal_clean) <- list(
   Mod1Id = "Unique identifier for rows in Form 1",
@@ -683,6 +715,8 @@ var_label(longitudinal_clean) <- list(
   RURALF = "Urbanicity", 
   EMPLOYMENTF_C = "Employment status", 
   EMPLOY1 = "Calculated employment status with smaller categories",
+  AcutePay1 = "Primary acute payor",
+  RehabPay1 = "Primary rehabilitation payor",
   CauseCat = "Cause of injury", 
   Aetiology = "Cause of injury dichotimised to violent or nonviolent", 
   TBIInjuryF_C = "Is ther any head or neck injury reported", 
@@ -725,7 +759,7 @@ datatable(codebook,
 
 Most variables of interest are available in the dataset from October 2012. In order to reduce structural missingness, the sample was restricted to those enrolled in TBIMS between 2013 and 2023, reflecting the period when all variables of interest were available in the TBIMS NDB.
 
-```{r}
+```{r eligibility-years}
 data_risk <- baseline_clean %>% # <7>
   filter(INJYEAR >= 2013 & INJYEAR <= 2023) %>% # <8>
   select(-Mod2Id, -DAYStoDEATHF_C, -HHIncomeF_C, -gate_PHQ, -PHQ9TOTF_C, -gate_GAD, -GAD7TOTF_C, -TBIInjuryF_C, -TBIRepInjuryF_C, -GOSTotalF_C) # <9>
@@ -737,15 +771,15 @@ data_risk <- baseline_clean %>% # <7>
 
 
 Relative to their younger counterparts, older adults more often sustain TBI from falls and less often from vehicular  or sports-related incidents and violence. We chose to restrict the analysis to those aged under 55 due to distinct injury mechanism patterns. 
-```{r}
+```{r eligibility-age}
 data_risk <- data_risk %>%
   filter(AGENoPHIF_C < 55)
 ```
 
 Rename variables for ease of interpretation in results, now that the cohort is finalised. 
-```{r}
+```{r rename-variables}
 data_risk <- data_risk %>%
-  select(Mod1Id, CauseCat, Aetiology, PsyHosp_C, MntlEver_C, SuicideEver, SuicideAttempt, DrugsF_C, DRINKCatF_C, AGENoPHIF_C, SexF_C, race_ethnicity_C, RURALF, EDUCATION_C, SpEd_C, EMPLOY1, CountryBirthF_C, GCSCatSed)
+  select(Mod1Id, CauseCat, Aetiology, PsyHosp_C, MntlEver_C, SuicideEver, SuicideAttempt, DrugsF_C, DRINKCatF_C, AGENoPHIF_C, SexF_C, race_ethnicity_C, RURALF, EDUCATION_C, SpEd_C, EMPLOY1, CountryBirthF_C, GCSCatSed, AcutePay1)
 
 data_risk %>%
   distinct(Mod1Id) %>%
@@ -769,11 +803,12 @@ data_risk <- data_risk %>%
     Cause = CauseCat,
     Aetiology = Aetiology,
     Alcohol_Use = DRINKCatF_C,
-    BornUS = CountryBirthF_C
+    BornUS = CountryBirthF_C,
+    AcutePay = AcutePay1
   )
 ```
 
-```{r}
+```{r factor-labels}
 
 data_risk <- data_risk %>%
   mutate(Sex = factor(Sex, labels = c("Female", "Male")),
@@ -782,7 +817,7 @@ data_risk <- data_risk %>%
          Urbanicity = factor(Urbanicity, labels = c("Rural", "Urban", "Suburban")),
          Special_Education = factor(Special_Education, labels = c("No", "Yes")),
          Employment = factor(Employment, labels = c("Competitively employed", "Student", "Retired", "Other employment", "Unemployed")),
-         Education = factor(Education, labels = c("No high school degree", "HS/GED", "Some college", "Associates degree", "Bachelors degree", "Graduate degree")),
+         Education = factor(Education, labels = c("HS/GED", "No high school degree", "Some college", "Associates degree", "Bachelors degree", "Graduate degree")),
          Cause = factor(Cause, labels = c("Vehicular", "Gunshot wounds", "Assault with blunt instrument", "Other violence", "Sports", "Falls", "Other")),
          Aetiology = factor(Aetiology, labels = c("Nonviolent", "Violent")),
          Mental_Treatment = factor(Mental_Treatment, labels = c("No", "Yes")),
@@ -791,15 +826,30 @@ data_risk <- data_risk %>%
          Suicide_Lifetime = factor(Suicide_Lifetime, labels = c("No", "Yes")),
          Suicide_Recent = factor(Suicide_Recent, labels = c("No", "Yes but not in the last year", "Yes and within the last year")),
          Drugs = factor(Drugs, labels = c("No", "Yes")),
-         GCS = factor(GCS, labels = c("Severe", "Moderate", "Mild", "Sedated", "Intubated"))
+         GCS = factor(GCS, labels = c("Severe", "Moderate", "Mild", "Sedated", "Intubated")),
+         AcutePay = factor(AcutePay, labels = c("Private insurance", "Medicare", "Medicaid", "Workers compensation", "Self or private pay", "State or Country", "Autoinsurance", "Charity", "Other")),
          )
+```
+
+```{r demographics-raw}
+data_risk %>% 
+  tbl_summary(
+  include = c(Aetiology, Age, Sex, Race, Urbanicity, BornUS, Education, Special_Education, Employment, Psychiatric_Hospitalisation, Mental_Treatment, Suicide_Lifetime, Drugs, Alcohol_Use, AcutePay),
+  by = Aetiology,
+  statistic = list(
+      all_continuous() ~ "{median} ({p25}, {p75})",
+      all_categorical() ~ "{n} / {N} ({p}%)"
+    ),
+  digits = all_continuous() ~ 2,
+  missing_text = "(Missing)") %>%
+   add_overall()
 ```
 
 
 ## Missing data
 
 ### Visualise missingness
-```{r, results='hide'}
+```{r viz-missing, results='hide'}
 data_risk %>%
   select(-Mod1Id) %>%
   gg_miss_var(show_pct = TRUE) + labs(title = "Proportion of missingness")
@@ -811,7 +861,7 @@ data_risk %>%
 dev.off()
 ```
 
-```{r, fig.height= 15}
+```{r missing-patterns, fig.height= 15}
 par(mar = c(10, 6, 4, 2))
 aggr(data_risk, 
      numbers = TRUE, 
@@ -834,7 +884,7 @@ aggr(data_risk,
 dev.off()
 ```
 
-```{r}
+```{r missing-patterns-psych}
 par(mar = c(10, 6, 4, 2))
 aggr(data_risk %>%
        select(Alcohol_Use, Drugs, Psychiatric_Hospitalisation, Mental_Treatment, Suicide_Lifetime, Suicide_Recent),
@@ -849,7 +899,7 @@ aggr(data_risk %>%
 #### Assess the patterns of missing data
 
 Does missingness for race/ethnicity vary by observed variables? 
-```{r}
+```{r missing-race}
 data_sub <- data_risk %>%
   mutate(
     # categorise age
@@ -863,11 +913,11 @@ data_sub <- data_risk %>%
    
   # is alcohol use missing?
     Race_Missing = ifelse(is.na(Race), "Yes", "No")) %>%
-  select(AgeCat, Sex, BornUS, Urbanicity, Aetiology, Special_Education, Employment, Education, Race_Missing, Mental_Treatment, Drugs)
+  select(AgeCat, Sex, BornUS, Urbanicity, Aetiology, Special_Education, Employment, Education, AcutePay, Race_Missing, Mental_Treatment, Drugs)
 
 
 data_sub %>%
-  tbl_summary(by = Race_Missing, include = c(AgeCat, Sex, BornUS, Urbanicity, Special_Education, Employment, Education)) %>%
+  tbl_summary(by = Race_Missing, include = c(AgeCat, Sex, BornUS, Urbanicity, Special_Education, Employment, Education, AcutePay)) %>%
   modify_spanning_header(all_stat_cols() ~ "**Missing Race/Ethnicity**") %>%
   add_p(
     # perform  chi-square with simulation to avoid computational constraints
@@ -879,7 +929,7 @@ test.args = all_categorical() ~ list(simulate.p.value = TRUE))
 tf <- "output/gtsummary-race-missing.docx"
 
 data_sub %>%
-  tbl_summary(by = Race_Missing, include = c(AgeCat, Sex, BornUS, Urbanicity, Special_Education, Employment, Education)) %>%
+  tbl_summary(by = Race_Missing, include = c(AgeCat, Sex, BornUS, Urbanicity, Special_Education, Employment, Education, AcutePay)) %>%
   modify_spanning_header(all_stat_cols() ~ "**Missing Race/Ethnicity**") %>%
   add_p(
     # perform  chi-square with simulation to avoid computational constraints
@@ -887,24 +937,22 @@ data_sub %>%
 test.args = all_categorical() ~ list(simulate.p.value = TRUE)) %>%
   as_gt() %>%
   gt::gtsave(filename = tf)
-```
 
-```{r}
+# margin plot
 age.race <- data_risk[, c("Race", "Age")]
 marginplot(age.race)
 
 jpeg("output/age_race_marginplot.jpg", width = 800, height = 600)
 marginplot(age.race)
 dev.off()
-```
 
-```{r}
-race_select <- data.frame(data_risk[,c("Race", "Age", "BornUS", "Education", "Employment")])
+# MAR?
+race_select <- data.frame(data_risk[,c("Race", "Age", "BornUS", "Education", "Employment", "AcutePay")])
 
 # copy variable with missing data and rename 
 race_select$Race_MAR <- race_select$Race
 
-explanatory = c("Age",  "Age", "BornUS", "Education", "Employment")
+explanatory = c("Age",  "Age", "BornUS", "Education", "Employment", "AcutePay")
 dependent = "Race_MAR"
 race_select %>% 
   missing_compare(dependent, explanatory) %>% 
@@ -916,7 +964,7 @@ race_select %>%
 
 Does missingness for alcohol use vary by observed variables? 
 
-```{r}
+```{r missing-alcohol}
 data_sub <- data_risk %>%
   mutate(
     # categorise age
@@ -930,23 +978,22 @@ data_sub <- data_risk %>%
    
   # is alcohol use missing?
     Alcohol_Missing = ifelse(is.na(Alcohol_Use), "Yes", "No")) %>%
-  select(AgeCat, Sex, Race, BornUS, Urbanicity, Aetiology, Special_Education, Employment, Education, Alcohol_Missing, Mental_Treatment, Drugs)
+  select(AgeCat, Sex, Race, BornUS, Urbanicity, Aetiology, Special_Education, Employment, Education, AcutePay, Alcohol_Missing, Mental_Treatment, Drugs)
 
 
 data_sub %>%
-  tbl_summary(by = Alcohol_Missing, include = c(AgeCat, Sex, Race, BornUS, Urbanicity, Special_Education, Employment, Education, Mental_Treatment, Drugs)) %>%
+  tbl_summary(by = Alcohol_Missing, include = c(AgeCat, Sex, Race, BornUS, Urbanicity, Special_Education, Employment, Education, AcutePay, Mental_Treatment, Drugs)) %>%
   modify_spanning_header(all_stat_cols() ~ "**Missing Alcohol Consumption**") %>%
   add_p(
     # perform  chi-square with simulation to avoid computational constraints
     test = all_categorical() ~ "chisq.test",
 test.args = all_categorical() ~ list(simulate.p.value = TRUE))
-```
 
-```{r}
+
 tf2 <- "output/gtsummary-alcohol-missing.docx"
 
 data_sub %>%
-  tbl_summary(by = Alcohol_Missing, include = c(AgeCat, Sex, Race, BornUS, Urbanicity, Special_Education, Employment, Education, Mental_Treatment, Drugs)) %>%
+  tbl_summary(by = Alcohol_Missing, include = c(AgeCat, Sex, Race, BornUS, Urbanicity, Special_Education, Employment, Education, AcutePay, Mental_Treatment, Drugs)) %>%
   modify_spanning_header(all_stat_cols() ~ "**Missing Alcohol Consumption**") %>%
   add_p(
     # perform  chi-square with simulation to avoid computational constraints
@@ -954,18 +1001,16 @@ data_sub %>%
 test.args = all_categorical() ~ list(simulate.p.value = TRUE)) %>%
   as_gt() %>%
   gt::gtsave(filename = tf2)
-```
 
-```{r}
+# margin plot
 age.alc <- data_risk[, c("Alcohol_Use", "Age")]
 marginplot(age.alc)
 
 jpeg("output/age_alcohol_marginplot.jpg", width = 800, height = 600)
 marginplot(age.alc)
 dev.off()
-```
 
-```{r}
+# MAR?
 alc_select <- data.frame(data_risk[,c("Alcohol_Use", "Age", "Drugs", "Mental_Treatment", "Psychiatric_Hospitalisation", "Suicide_Lifetime", "Suicide_Recent")])
 
 # copy variable with missing data and rename 
@@ -978,9 +1023,8 @@ alc_select %>%
     knitr::kable(row.names=FALSE, align = c("l", "l", "r", "r", "r"), 
         caption = "Mean comparisons between values of responders (Not missing) and 
         non-responders (Missing) on the alcohol use variable.")
-```
 
-```{r}
+
 drug.alc <- as.data.frame(data_risk[, c("Alcohol_Use", "Drugs")])
 spineMiss(drug.alc)
 
@@ -994,50 +1038,48 @@ dev.off()
 #### Fitting the imputed model
 
 Include all variables that will be used in the analysis in the same form they will be used in the model. 
-```{r}
+```{r fit-imp}
 data_risk <- data_risk %>%
   select(-Aetiology) # <5> I don't include `Aetiology` in the imputation model, as `Aetiology` is a collapsed version of `Cause` and including both causes perfect/near-perfect multicollinearity
 
 imp.mids <- mice(data_risk,
-                   seed  = 3, # ensure reproducibility
+                   seed  = 3,  # ensure reproducibility
                    m     = 20, # when you are ready to fit your final imputation model, use 20 imputations
                    print = F)
-```
 
-```{r}
 summary(imp.mids)
 ```
 
 
 Return the imputed dataset using `complete()`.
-```{r}
+```{r return-imp}
 imp.data <- complete(imp.mids)  # return the first imputed dataset
 ```
 
 Does the imputed dataset have the same dimensions as the original data?
-```{r}
+```{r imp-dimensions}
 dim(data_risk)
 dim(imp.data)
 ```
 
 Return all imputed datasets in "long" format (with stacking) including the original data
-```{r}
+```{r imp-long}
 imp.data <- complete(imp.mids, "long", include = TRUE)
 class(imp.data)
 dim(imp.data)
 ```
 
-```{r, results='hide'}
+```{r imp-data, results='hide'}
 names(imp.data) #<4>
 
 range(imp.data$.imp)
 range(imp.data$.id)
 ```
 
-4. A new variable called ".imp" indexes the imputations, where .imp = 0 corresponds to the original data and .imp = 1 to m corresponds to th imputed data. The new variable ".id" indexes the observations 
+4. A new variable called ".imp" indexes the imputations, where .imp = 0 corresponds to the original data and .imp = 1 to m corresponds to the imputed data. The new variable ".id" indexes the observations 
 
 Dichotimse for the outcome (violent vs nonviolent TBI)
-```{r}
+```{r recode-aetiology}
 imp.data <- imp.data %>%
   mutate(
     Aetiology = case_when(
@@ -1054,7 +1096,7 @@ imp.risk <- as.mids(imp.data, where = NULL, .imp = ".imp", .id = ".id")
 
 Create a table comparing the distribution of the variable between the complete data and the imputed data.
 
-```{r}
+```{r complete-vs-imput}
 imp.data <- imp.data %>% 
   mutate(imputed = .imp > 0,
          imputed = factor(imputed,
@@ -1078,7 +1120,7 @@ prop_observed_imputed <- function(data, vars, imp_var) {
 prop_observed_imputed(
   data   = imp.data,
   vars   = c("Sex", "Race", "BornUS", "Urbanicity", "Employment", "Education",
-             "Special_Education", "GCS", "Cause", "Aetiology",
+             "Special_Education", "AcutePay", "GCS", "Cause", "Aetiology",
              "Psychiatric_Hospitalisation", "Mental_Treatment",
              "Suicide_Lifetime", "Suicide_Recent", "Alcohol_Use", "Drugs"),
   imp_var = "imputed"
@@ -1090,7 +1132,7 @@ prop_observed_imputed(
 #### Complete case analysis
 
 How many rows would we lose if we required complete cases for these predictors?
-```{r}
+```{r complete-case}
 data_complete <- data_risk
 
 data_miss <- data_complete
@@ -1114,7 +1156,7 @@ After MI, compute descriptive statistics within each complete dataset and use Ru
 
 Use the `mi.mean.se.sd()` function (found in `Functions_rmph.R`) to calculate descriptive for the continuous variable `AGENoPHI`. The functions within `Functions_rmph.R` operate on a `mids` object. 
 
-```{r}
+```{r imp-descript}
 # use the original 'mids' object imp.risk
 mi.mean.se.sd(imp.risk, "Age")
 
@@ -1127,6 +1169,7 @@ rbind(mi.n.p(imp.risk, "Aetiology"),
       mi.n.p(imp.risk, "Education"),
       mi.n.p(imp.risk, "Special_Education"),
       mi.n.p(imp.risk, "Employment"),
+      mi.n.p(imp.risk, "AcutePay"),
       mi.n.p(imp.risk, "GCS"),
       mi.n.p(imp.risk, "Cause"),
       mi.n.p(imp.risk, "Mental_Treatment"),
@@ -1138,7 +1181,7 @@ rbind(mi.n.p(imp.risk, "Aetiology"),
 ```
 
 By TBI aetiology (`Aetiology`)
-```{r}
+```{r imp-descript-aet}
 # use the original 'mids' object imp.risk
 mi.mean.se.sd.by(imp.risk, "Age", BY = "Aetiology")
 
@@ -1150,6 +1193,7 @@ rbind(mi.n.p.by(imp.risk, "Sex", BY = "Aetiology"),
       mi.n.p.by(imp.risk, "Education", BY = "Aetiology"),
       mi.n.p.by(imp.risk, "Special_Education", BY = "Aetiology"),
       mi.n.p.by(imp.risk, "Employment", BY = "Aetiology"),
+      mi.n.p.by(imp.risk, "AcutePay", BY = "Aetiology"),
       mi.n.p.by(imp.risk, "GCS", BY = "Aetiology"),
       mi.n.p.by(imp.risk, "Mental_Treatment", BY = "Aetiology"),
       mi.n.p.by(imp.risk, "Psychiatric_Hospitalisation", BY = "Aetiology"),
@@ -1164,7 +1208,7 @@ rbind(mi.n.p.by(imp.risk, "Sex", BY = "Aetiology"),
 ## Linearity assumptions
 
 The sociodemographic factor `Age` is a continuous variable, and therefore the linearity assumption must be explored. Lets assess this before building the logistic regression models using restricted cubic splines. 
-```{r}
+```{r linearity-rcs}
 # before fitting models, remove missing values
 data_risk <- data_risk %>%
   mutate(Aetiology = case_when(
@@ -1234,9 +1278,8 @@ ggplot(data_splines_m,
        color = "") + 
   theme(legend.position = c(0.8, 0.2))
 dev.off()
-```
 
-```{r}
+
 model_comparison <- data.frame(
   Model = c("logit_baseline3", "logit_baseline4", "logit_baseline5"),
   Knots = c(3, 4, 5),  # or whatever your knot values are
@@ -1283,12 +1326,10 @@ model_comparison %>%
 Age at injury should be modelled using restricted cubic splines with 3 knots.
 
 ## Minimally adjusted models
-```{r}
+```{r logistic-psych}
 imp.psych_rcs <- with(imp.risk, 
                       glm(Aetiology ~ Psychiatric_Hospitalisation + rcs(Age, 3) + Sex, family = binomial))
-```
 
-```{r}
 tbl_regression(imp.psych_rcs, 
                exponentiate = TRUE) %>% # Shows ORs instead of log-odds
   bold_p() %>%
@@ -1301,12 +1342,10 @@ tbl_regression(imp.psych_rcs,
 
 ```
 
-```{r}
+```{r logistic-mental}
 imp.mntl_rcs <- with(imp.risk, 
                       glm(Aetiology ~ Mental_Treatment + rcs(Age, 3) + Sex, family = binomial))
-```
 
-```{r}
 tbl_regression(imp.mntl_rcs, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1318,12 +1357,10 @@ tbl_regression(imp.mntl_rcs,
   )
 ```
 
-```{r}
+```{r logistic-suicide}
 imp.suicide_rcs <- with(imp.risk, 
                       glm(Aetiology ~ Suicide_Lifetime + rcs(Age, 3) + Sex, family = binomial))
-```
 
-```{r}
 tbl_regression(imp.suicide_rcs, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1335,12 +1372,10 @@ tbl_regression(imp.suicide_rcs,
   )
 ```
 
-```{r}
+```{r logistic-alcohol}
 imp.drink_rcs <- with(imp.risk, 
                       glm(Aetiology ~ Alcohol_Use + rcs(Age, 3) + Sex, family = binomial))
-```
 
-```{r}
 tbl_regression(imp.drink_rcs, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1352,13 +1387,11 @@ tbl_regression(imp.drink_rcs,
   )
 ```
 
-```{r}
+```{r logistic-drug}
 imp.drug_rcs <- with(imp.risk, 
                       glm(Aetiology ~ Drugs + rcs(Age, 3) + Sex, family = binomial))
 
-```
 
-```{r}
 tbl_regression(imp.drug_rcs, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1375,13 +1408,11 @@ tbl_regression(imp.drug_rcs,
 
 Adjust for all sociodemographic risk factors (age, sex, race, urbanicity, educational attainment, learning difficulties/special education, and employment status) in the logistic regression models.
 
-```{r}
+```{r adj-log-psych}
 imp.psych.full <- with(imp.risk, 
                       glm(Aetiology ~ Psychiatric_Hospitalisation + rcs(Age, 3) + Sex
-                          + Race + Urbanicity + Education + Special_Education + Employment, family = binomial))
-```
+                          + Race + Urbanicity + Education + Special_Education + Employment + AcutePay, family = binomial))
 
-```{r}
 tbl_regression(imp.psych.full, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1394,13 +1425,11 @@ tbl_regression(imp.psych.full,
 ```
 
 
-```{r}
+```{r adj-logistic-mental}
 imp.mntl.full <- with(imp.risk, 
                       glm(Aetiology ~ Mental_Treatment + rcs(Age, 3) + Sex
-                           + Race + Urbanicity + Education + Special_Education + Employment, family = binomial))
-```
+                           + Race + Urbanicity + Education + Special_Education + Employment + AcutePay, family = binomial))
 
-```{r}
 tbl_regression(imp.mntl.full, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1412,13 +1441,11 @@ tbl_regression(imp.mntl.full,
   )
 ```
 
-```{r}
+```{r adj-logistic-suicide}
 imp.suicide.full <- with(imp.risk, 
                       glm(Aetiology ~ Suicide_Lifetime + rcs(Age, 3) + Sex
-                           + Race + Urbanicity + Education + Special_Education + Employment, family = binomial))
-```
+                           + Race + Urbanicity + Education + Special_Education + Employment + AcutePay, family = binomial))
 
-```{r}
 tbl_regression(imp.suicide.full, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1430,13 +1457,11 @@ tbl_regression(imp.suicide.full,
   )
 ```
 
-```{r}
+```{r adj-logistic-alcohol}
 imp.drink.full <- with(imp.risk, 
                       glm(Aetiology ~ Alcohol_Use + rcs(Age, 3) + Sex
-                           + Race + Urbanicity + Education + Special_Education + Employment, family = binomial))
-```
+                           + Race + Urbanicity + Education + Special_Education + Employment + AcutePay, family = binomial))
 
-```{r}
 tbl_regression(imp.drink.full, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1448,13 +1473,11 @@ tbl_regression(imp.drink.full,
   )
 ```
 
-```{r}
+```{r adj-logistic-drugs}
 imp.drug.full <- with(imp.risk, 
                       glm(Aetiology ~ Drugs + rcs(Age, 3) + Sex
-                           + Race + Urbanicity + Education + Special_Education + Employment, family = binomial))
-```
+                           + Race + Urbanicity + Education + Special_Education + Employment + AcutePay, family = binomial))
 
-```{r}
 tbl_regression(imp.drug.full, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1471,7 +1494,7 @@ tbl_regression(imp.drug.full,
 ### Correlation matrix
 
 First, create a heat map of all psychiatric risk factors. Correlation of dark green indicates a 1.0 correlation. 
-```{r}
+```{r psych-cor}
 coul <- colorRampPalette(brewer.pal(8, "PiYG"))(25)
 
 completed <- complete(imp.risk, action = "all")
@@ -1494,7 +1517,7 @@ dev.off()
 ```
 
 The Phi coefficient is a measure of association between binary variables. A pearson correlation coefficient estimates for binary variables will return the phi coefficient.
-```{r}
+```{r psych-pearson-cor}
 res <- round(cor, 2)
 datatable(res, 
   options = list(
@@ -1511,16 +1534,14 @@ datatable(res,
 
 Include all psychiatric predictors in the model, adjusting for sociodemographics covariates
 
-```{r}
+```{r logistic-all}
 imp.psych.all <- with(imp.risk, 
                       glm(Aetiology ~ Psychiatric_Hospitalisation + Mental_Treatment +
                             Suicide_Lifetime + Alcohol_Use + Drugs + 
                             rcs(Age, 3) + Sex + 
-                            Race + Urbanicity + Education + Special_Education + Employment, 
+                            Race + Urbanicity + Education + Special_Education + Employment + AcutePay, 
                           family = binomial))
-```
 
-```{r}
 tbl_regression(imp.psych.all, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1543,7 +1564,7 @@ For aGSIFs, our rule of thumb for what is large is that values **above 1.6 may b
 ### Minimally adjusted models
 
 Psychiatric Hospitalisation
-```{r}
+```{r vif-psych}
 vif_results_psy <- lapply(1:imp.risk$m, function(i) {
   complete_data <- complete(imp.risk, i)
   imp.psych_rcs <- glm(Aetiology ~ Psychiatric_Hospitalisation + rcs(Age, 3) + Sex, 
@@ -1559,7 +1580,7 @@ print(vif_averaged1)
 ```
 
 Mental Health Treatment
-```{r}
+```{r vif-mental}
 vif_results_mnt <- lapply(1:imp.risk$m, function(i) {
   complete_data <- complete(imp.risk, i)
   imp.mntl_rcs <- glm(Aetiology ~ Mental_Treatment + rcs(Age, 3) + Sex, 
@@ -1575,7 +1596,7 @@ print(vif_averaged2)
 ```
 
 Suicide Attempt
-```{r}
+```{r vif-suicide}
 vif_results_suicide <- lapply(1:imp.risk$m, function(i) {
   complete_data <- complete(imp.risk, i)
   imp.suicide_rcs <- glm(Aetiology ~ Suicide_Lifetime + rcs(Age, 3) + Sex, 
@@ -1591,7 +1612,7 @@ print(vif_averaged3)
 ```
 
 Alcohol Use
-```{r}
+```{r vif-alcohol}
 vif_results_drink <- lapply(1:imp.risk$m, function(i) {
   complete_data <- complete(imp.risk, i)
   imp.drink_rcs <- glm(Aetiology ~ Alcohol_Use + rcs(Age, 3) + Sex, 
@@ -1607,7 +1628,7 @@ print(vif_averaged4)
 ```
 
 Illicit Drug Use
-```{r}
+```{r vif-drugs}
 vif_results_drugs <- lapply(1:imp.risk$m, function(i) {
   complete_data <- complete(imp.risk, i)
   imp.drug_rcs <- glm(Aetiology ~ Drugs + rcs(Age, 3) + Sex, 
@@ -1625,11 +1646,11 @@ print(vif_averaged5)
 ### Fully adjusted models
 
 Psychiatric Hospitilisation
-```{r}
+```{r adj-vif-psych}
 vif_results_psy_full <- lapply(1:imp.risk$m, function(i) {
   complete_data <- complete(imp.risk, i)
    imp.psych.full <- glm(Aetiology ~ Psychiatric_Hospitalisation + rcs(Age, 3) + Sex
-                          + Race + Urbanicity + Education + Special_Education + Employment,
+                          + Race + Urbanicity + Education + Special_Education + Employment + AcutePay,
                data = complete_data, 
                family = binomial)
   car::vif(imp.psych.full)
@@ -1642,11 +1663,11 @@ print(vif_averaged6)
 ```
 
 Mental Health Treatment 
-```{r}
+```{r adj-vif-mental}
 vif_results_mntl_full <- lapply(1:imp.risk$m, function(i) {
   complete_data <- complete(imp.risk, i)
    imp.mntl.full <- glm(Aetiology ~ Mental_Treatment + rcs(Age, 3) + Sex
-                          + Race + Urbanicity + Education + Special_Education + Employment,
+                          + Race + Urbanicity + Education + Special_Education + Employment + AcutePay,
                data = complete_data, 
                family = binomial)
   car::vif(imp.mntl.full)
@@ -1659,11 +1680,11 @@ print(vif_averaged7)
 ```
 
 Suicide Attempt
-```{r}
+```{r adj-vif-suicide}
 vif_results_suicide_full <- lapply(1:imp.risk$m, function(i) {
   complete_data <- complete(imp.risk, i)
    imp.suicide.full <- glm(Aetiology ~ Suicide_Lifetime + rcs(Age, 3) + Sex
-                          + Race + Urbanicity + Education + Special_Education + Employment,
+                          + Race + Urbanicity + Education + Special_Education + Employment + AcutePay,
                data = complete_data, 
                family = binomial)
   car::vif(imp.suicide.full)
@@ -1676,11 +1697,11 @@ print(vif_averaged8)
 ```
 
 Alcohol Use
-```{r}
+```{r adj-vif-alcohol}
 vif_results_drink_full <- lapply(1:imp.risk$m, function(i) {
   complete_data <- complete(imp.risk, i)
    imp.drink.full <- glm(Aetiology ~ Alcohol_Use + rcs(Age, 3) + Sex
-                          + Race + Urbanicity + Education + Special_Education + Employment,
+                          + Race + Urbanicity + Education + Special_Education + Employment + AcutePay,
                data = complete_data, 
                family = binomial)
   car::vif(imp.drink.full)
@@ -1693,11 +1714,11 @@ print(vif_averaged9)
 ```
 
 Illicit Drug Use
-```{r}
+```{r adj-vif-drugs}
 vif_results_drugs_full <- lapply(1:imp.risk$m, function(i) {
   complete_data <- complete(imp.risk, i)
    imp.drugs.full <- glm(Aetiology ~ Drugs + rcs(Age, 3) + Sex
-                          + Race + Urbanicity + Education + Special_Education + Employment,
+                          + Race + Urbanicity + Education + Special_Education + Employment + AcutePay,
                data = complete_data, 
                family = binomial)
   car::vif(imp.drugs.full)
@@ -1710,12 +1731,12 @@ print(vif_averaged10)
 ```
 
 All predictors
-```{r}
+```{r adj-vif-all}
 vif_results_all <- lapply(1:imp.risk$m, function(i) {
   complete_data <- complete(imp.risk, i)
    imp.psych.all <- glm(Aetiology ~ Psychiatric_Hospitalisation + Mental_Treatment + Suicide_Lifetime + Alcohol_Use + Drugs
                           + rcs(Age, 3) + Sex
-                          + Race + Urbanicity + Education + Special_Education + Employment,
+                          + Race + Urbanicity + Education + Special_Education + Employment + AcutePay,
                data = complete_data, 
                family = binomial)
   car::vif(imp.psych.all)
@@ -1735,10 +1756,10 @@ When including all psychiatric predictors the aGSIF increase, however still the 
 
 Are similar results obtained when the analysis is restricted to the complete cases only?
 
-```{r}
+```{r complete-case-data}
 data_complete <- data_risk
 
-data_complete <- data_complete[complete.cases(data_complete[ , c("Aetiology", "Age", "Sex", "Race", "Urbanicity", "Drugs", "Suicide_Lifetime", "Suicide_Recent", "Special_Education", "Mental_Treatment", "Psychiatric_Hospitalisation", "Education", "Employment", "GCS", "Cause" , "Alcohol_Use", "BornUS")]), ]
+data_complete <- data_complete[complete.cases(data_complete[ , c("Aetiology", "Age", "Sex", "Race", "Urbanicity", "Drugs", "Suicide_Lifetime", "Suicide_Recent", "Special_Education", "Mental_Treatment", "Psychiatric_Hospitalisation", "Education", "Employment", "AcutePay", "GCS", "Cause" , "Alcohol_Use", "BornUS")]), ]
 
 data_complete %>%
   distinct(Mod1Id) %>%
@@ -1747,9 +1768,9 @@ data_complete %>%
 
 ### Descriptive statistics 
 
-```{r}
+```{r complete-descript}
 data_complete %>%
-  tbl_summary(by = Aetiology, include = c(Age, Sex, Race, BornUS, Urbanicity, Employment, Education, Special_Education, Psychiatric_Hospitalisation, Mental_Treatment, Suicide_Lifetime, Alcohol_Use, Drugs)) %>%
+  tbl_summary(by = Aetiology, include = c(Age, Sex, Race, BornUS, Urbanicity, Employment, Education, Special_Education, AcutePay, Psychiatric_Hospitalisation, Mental_Treatment, Suicide_Lifetime, Alcohol_Use, Drugs)) %>%
   add_p(
     # perform  chi-square with simulation to avoid computational constraints
     test = all_categorical() ~ "chisq.test",
@@ -1758,7 +1779,7 @@ test.args = all_categorical() ~ list(simulate.p.value = TRUE)) %>%
 ```
 
 Aetiology by psychiatric hospitalisation 
-```{r}
+```{r complete-descript-psych}
 data_complete %>%
   tbl_summary(by = Psychiatric_Hospitalisation, include = Aetiology) %>%
   add_p(
@@ -1769,7 +1790,7 @@ test.args = all_categorical() ~ list(simulate.p.value = TRUE)) %>%
 ```
 
 Aetiology by mental health treatment 
-```{r}
+```{r complete-descript-mental}
 data_complete %>%
   tbl_summary(by = Mental_Treatment, include = Aetiology) %>%
   add_p(
@@ -1780,7 +1801,7 @@ test.args = all_categorical() ~ list(simulate.p.value = TRUE)) %>%
 ```
 
 Aetiology by suicide attempt
-```{r}
+```{r complete-descript-suicide}
 data_complete %>%
   tbl_summary(by = Suicide_Lifetime, include = Aetiology) %>%
   add_p(
@@ -1791,7 +1812,7 @@ test.args = all_categorical() ~ list(simulate.p.value = TRUE)) %>%
 ```
 
 Aetiology by alcohol use
-```{r}
+```{r complete-descript-alcohol}
 data_complete %>%
   tbl_summary(by = Alcohol_Use, include = Aetiology) %>%
   add_p(
@@ -1802,7 +1823,7 @@ test.args = all_categorical() ~ list(simulate.p.value = TRUE)) %>%
 ```
 
 Aetiology by illicit drug use
-```{r}
+```{r complete-descript-drugs}
 data_complete %>%
   tbl_summary(by = Drugs, include = Aetiology) %>%
   add_p(
@@ -1814,11 +1835,9 @@ test.args = all_categorical() ~ list(simulate.p.value = TRUE)) %>%
 
 
 ### Minimally adjusted models
-```{r}
+```{r complete-logistic-psych}
 cc.psych_rcs <- glm(Aetiology ~ Psychiatric_Hospitalisation + rcs(Age, 3) + Sex, family = binomial, data = data_complete)
-```
 
-```{r}
 tbl_regression(cc.psych_rcs, 
                exponentiate = TRUE) %>% # Shows ORs instead of log-odds
   bold_p() %>%
@@ -1831,11 +1850,9 @@ tbl_regression(cc.psych_rcs,
 
 ```
 
-```{r}
+```{r complete-logistic-mental}
 cc.mntl_rcs <- glm(Aetiology ~ Mental_Treatment + rcs(Age, 3) + Sex, family = binomial, data = data_complete)
-```
 
-```{r}
 tbl_regression(cc.mntl_rcs, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1847,11 +1864,9 @@ tbl_regression(cc.mntl_rcs,
   )
 ```
 
-```{r}
+```{r complete-logistic-suicide}
 cc.suicide_rcs <- glm(Aetiology ~ Suicide_Lifetime + rcs(Age, 3) + Sex, family = binomial, data = data_complete)
-```
 
-```{r}
 tbl_regression(cc.suicide_rcs, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1863,11 +1878,9 @@ tbl_regression(cc.suicide_rcs,
   )
 ```
 
-```{r}
+```{r complete-logistic-alcohol}
 cc.drink_rcs <- glm(Aetiology ~ Alcohol_Use + rcs(Age, 3) + Sex, family = binomial, data = data_complete)
-```
 
-```{r}
 tbl_regression(cc.drink_rcs, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1879,12 +1892,10 @@ tbl_regression(cc.drink_rcs,
   )
 ```
 
-```{r}
+```{r complete-logistic-drugs}
 cc.drug_rcs <- glm(Aetiology ~ Drugs + rcs(Age, 3) + Sex, family = binomial, data = data_complete)
 
-```
 
-```{r}
 tbl_regression(cc.drug_rcs, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1901,12 +1912,11 @@ tbl_regression(cc.drug_rcs,
 
 Adjust for all sociodemographic risk factors (age, sex, race, urbanicity, educational attainment, learning difficulties/special education, and employment status) in the logistic regression models.
 
-```{r}
+```{r complete-adj-psych}
 cc.psych.full <- glm(Aetiology ~ Psychiatric_Hospitalisation + rcs(Age, 3) + Sex
-                          + Race + Urbanicity + Education + Special_Education + Employment, family = binomial, data = data_complete)
-```
+                          + Race + Urbanicity + Education + Special_Education + Employment 
+                     + AcutePay, family = binomial, data = data_complete)
 
-```{r}
 tbl_regression(cc.psych.full, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1919,12 +1929,11 @@ tbl_regression(cc.psych.full,
 ```
 
 
-```{r}
+```{r complete-adj-mental}
 cc.mntl.full <- glm(Aetiology ~ Mental_Treatment + rcs(Age, 3) + Sex
-                           + Race + Urbanicity + Education + Special_Education + Employment, family = binomial, data = data_complete)
-```
+                           + Race + Urbanicity + Education + Special_Education + Employment 
+                    + AcutePay, family = binomial, data = data_complete)
 
-```{r}
 tbl_regression(cc.mntl.full, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1936,12 +1945,11 @@ tbl_regression(cc.mntl.full,
   )
 ```
 
-```{r}
+```{r complete-adj-suicide}
 cc.suicide.full <- glm(Aetiology ~ Suicide_Lifetime + rcs(Age, 3) + Sex
-                           + Race + Urbanicity + Education + Special_Education + Employment, family = binomial, data = data_complete)
-```
+                           + Race + Urbanicity + Education + Special_Education + Employment 
+                       + AcutePay, family = binomial, data = data_complete)
 
-```{r}
 tbl_regression(cc.suicide.full, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1953,12 +1961,11 @@ tbl_regression(cc.suicide.full,
   )
 ```
 
-```{r}
+```{r complete-adj-drink}
 cc.drink.full <- glm(Aetiology ~ Alcohol_Use + rcs(Age, 3) + Sex
-                           + Race + Urbanicity + Education + Special_Education + Employment, family = binomial, data = data_complete)
-```
+                           + Race + Urbanicity + Education + Special_Education + Employment 
+                     + AcutePay, family = binomial, data = data_complete)
 
-```{r}
 tbl_regression(cc.drink.full, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1970,12 +1977,10 @@ tbl_regression(cc.drink.full,
   )
 ```
 
-```{r}
+```{r complete-adj-drug}
 cc.drug.full <- glm(Aetiology ~ Drugs + rcs(Age, 3) + Sex
-                           + Race + Urbanicity + Education + Special_Education + Employment, family = binomial, data = data_complete)
-```
+                           + Race + Urbanicity + Education + Special_Education + Employment + AcutePay, family = binomial, data = data_complete)
 
-```{r}
 tbl_regression(cc.drug.full, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -1989,7 +1994,7 @@ tbl_regression(cc.drug.full,
 
 ## Suicide atttempt 
 
-```{r}
+```{r suicide-descript-imp}
 mi.n.p(imp.risk, "Suicide_Recent")
 mi.n.p.by(imp.risk, "Suicide_Recent", BY = "Aetiology")
 mi.n.p.by(imp.risk, "Cause", BY = "Suicide_Recent")
@@ -1997,12 +2002,10 @@ mi.n.p.by(imp.risk, "Cause", BY = "Suicide_Recent")
 
 There are 107.9 individuals who report a suicide attempt within the 12 months prior to the TBI. Without interviewing these individuals it would be hard to ascertain whether the suicide attempt caused their brain injury. Very little is known about individuals who sustain a brain secondary to a suicide attempt [(Higgins et al., 2020)](https://pubmed.ncbi.nlm.nih.gov/31674208/]). 
 
-```{r}
+```{r sensitivity-suicide}
 imp.suicide.recent1 <- with(imp.risk, 
                       glm(Aetiology ~ Suicide_Recent + rcs(Age, 3) + Sex, family = binomial))
-```
 
-```{r}
 tbl_regression(imp.suicide.recent1, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -2012,16 +2015,11 @@ tbl_regression(imp.suicide.recent1,
   gt::tab_header(
     title = "Logistic Regression: TBI Aetiology by Suicide Attempts (Minimally Adjusted Model)"
   )
-```
 
-
-```{r}
 imp.suicide.recent2 <- with(imp.risk, 
                       glm(Aetiology ~ Suicide_Recent + rcs(Age, 3) + Sex
-                           + Race + Urbanicity + Education + Special_Education + Employment, family = binomial))
-```
+                           + Race + Urbanicity + Education + Special_Education + Employment + AcutePay, family = binomial))
 
-```{r}
 tbl_regression(imp.suicide.recent2, 
                exponentiate = TRUE) %>%
   bold_p() %>%
@@ -2038,7 +2036,7 @@ tbl_regression(imp.suicide.recent2,
 
 Save data to the .RProject.
 
-```{r}
+```{r save-data}
 save(object = longitudinal_complete, file = "data/longitudinal_complete.RData") # save the linked dataset
 save(object = longitudinal_clean, file = "data/longitudinal_clean.RData") # cleaned data were I have recoded missing as NA. 
 save(object = data_risk, file = "data/data_risk.RData") # data use for the psychiatric risk factor study
@@ -2046,7 +2044,7 @@ save(object = data_risk, file = "data/data_risk.RData") # data use for the psych
 
 Clean environment.
 
-```{r, results='hide'}
+```{r clean-environment, results='hide'}
 gc() # garabage, free unused R memory
 rm(list = ls()) # remove all from R environment
 cat("\014") # clear console
