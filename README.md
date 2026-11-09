@@ -1,6 +1,6 @@
 # Psychiatric predictors of violent traumatic brain injury: results from the TBIMS study
 
-R/Quarto repository for the manuscript 'Psychiatric predictors of violent traumatic brain injury: results from the TBIMS study' which is in press at Communications Medicine.
+R/Quarto repository for the manuscript 'Psychiatric indices associated with violent versus nonviolent traumatic brain injury' which is in press at Communications Medicine.
 
 The reposity contains the code to estimate the association between psychiatric illness and substance use and TBI aetiology using logistic regression. [The HTML file](https://mayaogonah.github.io/psychiatric-tbims/) rendered from Quarto, outlines the key stages of analysis. If you have any questions please email Dr Maya G T Ogonah at mgo2120@columbia.edu.
 
